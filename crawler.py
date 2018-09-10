@@ -1,6 +1,6 @@
 import requests
 from time import sleep
-from ProxyPool.proxy import Proxy
+from ProxiesPool.proxy import Proxy
 from bs4 import BeautifulSoup
 from utils import get_page
 class Crawler(object):
