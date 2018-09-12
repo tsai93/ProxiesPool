@@ -11,6 +11,7 @@ MYSQL_PORT = 3306
 MYSQL_USER = 'root'
 MYSQL_PWD = 'caiheming'
 MYSQL_DB = 'testdb'
+POOL_UPPER_THRESHOLD = 10000
 
 
 class MySQLClient(object):
@@ -28,21 +29,23 @@ class MySQLClient(object):
     '''
     def add(self, proxy):
         if isinstance(proxy, Proxy):
-            sql = 'select * from proxies where proxy_ip = "%s"' % proxy.ip
-            print(sql)
-            cursor = self.db.cursor()
-            cursor.execute(sql)
-            data = cursor.fetchall()
-            if len(data) == 0:
-                print(data)
+            # sql = 'select * from proxies where proxy_ip = "%s"' % proxy.ip
+            # print(sql)
+            # cursor = self.db.cursor()
+            # cursor.execute(sql)
+            # data = cursor.fetchall()
+            # if len(data) == 0:
+            #     print(data)
+            if not self.isExist(proxy):
                 sql = 'insert INTO proxies (proxy_ip , proxy_port , proxy_type, proxy_score) VALUES ("%(ip)s", "%(port)s", "%(type)s", %(score)d)' % {"ip": proxy.ip, "port": proxy.port, "type": proxy.type, "score": INITIAL_SCORE}
                 try:
+                    cursor = self.db.cursor()
                     cursor.execute(sql)
-                    data = cursor.fetchall()
+
                     self.db.commit()
                 except:
                     self.db.rollback()
-                self.db.close()
+
             else:
                 print("代理:%s已存在……" % (":".join([proxy.ip, proxy.port])))
 
@@ -79,7 +82,7 @@ class MySQLClient(object):
                     self.db.commit()
                 except:
                     self.db.rollback()
-                self.db.close()
+
 
     '''
     扣1分
@@ -100,7 +103,7 @@ class MySQLClient(object):
                     self.db.commit()
                 except:
                     self.db.rollback()
-                self.db.close()
+
 
     '''
     低于60直接删除
@@ -116,7 +119,7 @@ class MySQLClient(object):
                     self.db.commit()
                 except:
                     self.db.rollback()
-                self.db.close()
+
 
 
     def isExist(self, proxy):
@@ -125,18 +128,49 @@ class MySQLClient(object):
         cursor = self.db.cursor()
         cursor.execute(sql)
         data = cursor.fetchone()
-        if len(data) != 0:
+        if data is not None:
             return True
         else:
             return False
-# p = {'ip': '36.99.206.26', 'port': '22172', 'type': 'HTTPS'}
-# a = {}
-# pro = Proxy(p['ip'], p['port'], p['type'])
-# print(pro.ip)
-# m = MySQLClient()
-# m.add(pro)
+
+    def all(self):
+        sql = 'select * from proxies'
+        cursor = self.db.cursor()
+
+        cursor.execute(sql)
+        datas = cursor.fetchall()
+        for data in datas:
+            proxy = Proxy(data[1], data[2], data[3])
+            yield proxy
+
+    def is_over_threshold(self):
+        sql = 'select count(*) from proxies'
+        cursor = self.db.cursor()
+        cursor.execute(sql)
+        data = cursor.fetchone()
+        print(data)
+        if len(data) != 0:
+            count = data[0]
+            if count >= POOL_UPPER_THRESHOLD:
+                return True
+            else:
+                return False
+
 m = MySQLClient()
+
+# 添加代理测试
 # ps = Crawler()
 # for p in ps.crawl_kuaidaili():
 #     m.add(p)
-m.increase(m.random(proxy_type='http'))
+
+# 随机取代理、加分、扣分测试
+# m.increase(m.random(proxy_type='http'))
+
+# 取全部代理测试
+# for proxy in m.all():
+#     print(proxy.ip)
+
+# 获取数量测试：
+# print(m.is_over_threshold())
+proxy = Proxy(ip='122.96.93.10', port='49435', type='HTTP')
+print(m.isExist(proxy))

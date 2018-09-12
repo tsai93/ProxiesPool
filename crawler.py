@@ -1,8 +1,9 @@
 import requests
-from time import sleep
 from ProxiesPool.proxy import Proxy
 from bs4 import BeautifulSoup
 from utils import get_page
+
+
 class Crawler(object):
     def __init__(self):
         pass
@@ -20,13 +21,13 @@ class Crawler(object):
     def get_proxies(self, callback):
         proxies = []
         for proxy in eval("self.%(func)s()" % {"func": callback}):
-            print("成功获取代理：", proxy)
+            print("成功获取代理：", proxy.ip)
             proxies.append(proxy)
         return proxies
 
-    def crawl_kuaidaili(self, page_count=50):   # 爬取快代理上的免费代理
+    def crawl_kuaidaili(self, page_count=5):   # 爬取快代理上的免费代理
         urls = ["https://www.kuaidaili.com/free/inha/{}".format(page) for page in range(1, page_count+1)]
-        count = 0
+
         for url in urls:
             response = requests.get(url)
             if response.status_code == 200:
@@ -41,10 +42,7 @@ class Crawler(object):
                     proxy = Proxy(ip, port, proxy_type)
                     yield proxy
 
-                count += 1
-                print(count)
-
-    def crawl_xicidaili(self, page_count=1):
+    def crawl_xicidaili(self, page_count=10):
         urls = ["http://www.xicidaili.com/nn/%s" % page for page in range(1, page_count+1)]
         for url in urls:
             html = get_page(url)
@@ -67,5 +65,5 @@ if __name__ == "__main__":
     # for ip in c.crawl_kuaidaili():
     #     print(ip)
     for ip in c.crawl_xicidaili():
-        print(ip)
+        print(ip.ip)
 
